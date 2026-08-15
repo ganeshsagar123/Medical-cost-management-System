@@ -31,6 +31,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(datasets.router, prefix="/api/v1")
@@ -40,3 +45,16 @@ app.include_router(insights.router, prefix="/api/v1")
 app.include_router(recommendations.router, prefix="/api/v1")
 app.include_router(scenarios.router, prefix="/api/v1")
 app.include_router(advisor.router, prefix="/api/v1")
+
+frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        target_file = frontend_dist / full_path
+        if full_path and target_file.exists() and target_file.is_file():
+            return FileResponse(target_file)
+        return FileResponse(frontend_dist / "index.html")

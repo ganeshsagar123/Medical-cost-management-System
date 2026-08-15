@@ -1,6 +1,6 @@
 import type { AdvisorResponse, AnalyticsSummary, ApplicationUser, AuthenticationResponse, CostAlert, Dataset, DatasetPreviewResponse, DatasetValidationResponse, DriverInsight, ForecastRun, HealthStatus, Recommendation, ScenarioResult } from '../types/api'
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1'
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 const accessTokenKey = 'medical-cost-access-token'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
