@@ -28,13 +28,13 @@ class UnavailableProvider:
 
 
 class OpenAIResponsesProvider:
-    """Small optional adapter for the OpenAI Responses API; no application data is persisted here."""
+    """Adapter for OpenAI Chat Completions API."""
 
     name = "openai"
 
     def __init__(self, *, api_key: str | None, model: str, base_url: str) -> None:
         self.api_key = api_key
-        self.model = model
+        self.model = model or "gpt-4o-mini"
         self.base_url = base_url.rstrip("/")
 
     def available(self) -> bool:
@@ -43,20 +43,48 @@ class OpenAIResponsesProvider:
     def generate(self, *, instructions: str, input_text: str) -> str:
         if not self.available():
             raise RuntimeError("OpenAI provider credentials are not configured.")
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        
+        # Try standard OpenAI Chat Completions API
+        try:
+            response = httpx.post(
+                f"{self.base_url}/chat/completions",
+                headers=headers,
+                json={
+                    "model": self.model,
+                    "messages": [
+                        {"role": "system", "content": instructions},
+                        {"role": "user", "content": input_text},
+                    ],
+                },
+                timeout=30.0,
+            )
+            if response.status_code == 200:
+                payload = response.json()
+                choices = payload.get("choices", [])
+                if choices and isinstance(choices, list):
+                    content = choices[0].get("message", {}).get("content")
+                    if isinstance(content, str) and content.strip():
+                        return content.strip()
+        except Exception:
+            pass
+
+        # Fallback to /responses endpoint
         try:
             response = httpx.post(
                 f"{self.base_url}/responses",
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers=headers,
                 json={"model": self.model, "instructions": instructions, "input": input_text, "store": False},
                 timeout=30.0,
             )
             response.raise_for_status()
+            payload = response.json()
+            output_text = payload.get("output_text")
+            if isinstance(output_text, str) and output_text.strip():
+                return output_text.strip()
         except httpx.HTTPError as error:
             raise RuntimeError("The configured OpenAI provider could not complete the advisor response.") from error
-        payload = response.json()
-        output_text = payload.get("output_text")
-        if isinstance(output_text, str) and output_text.strip():
-            return output_text.strip()
+        
         raise RuntimeError("The configured OpenAI provider returned no text response.")
 
 

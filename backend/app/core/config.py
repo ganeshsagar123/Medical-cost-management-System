@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     alert_department_concentration_threshold_pct: float = 30.0
     advisor_llm_provider: str = "disabled"
     advisor_llm_api_key: str | None = None
-    advisor_llm_model: str = "gpt-5-mini"
+    advisor_llm_model: str = "gpt-4o-mini"
     advisor_llm_base_url: str = "https://api.openai.com/v1"
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
