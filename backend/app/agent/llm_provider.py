@@ -66,25 +66,18 @@ class OpenAIResponsesProvider:
                     content = choices[0].get("message", {}).get("content")
                     if isinstance(content, str) and content.strip():
                         return content.strip()
-        except Exception:
-            pass
+            else:
+                try:
+                    err_json = response.json()
+                    detail = err_json.get("error", {}).get("message") or response.text
+                except Exception:
+                    detail = response.text
+                raise RuntimeError(f"OpenAI API Error ({response.status_code}): {detail}")
+        except RuntimeError:
+            raise
+        except Exception as error:
+            raise RuntimeError(f"OpenAI Connection Error: {error}") from error
 
-        # Fallback to /responses endpoint
-        try:
-            response = httpx.post(
-                f"{self.base_url}/responses",
-                headers=headers,
-                json={"model": self.model, "instructions": instructions, "input": input_text, "store": False},
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            payload = response.json()
-            output_text = payload.get("output_text")
-            if isinstance(output_text, str) and output_text.strip():
-                return output_text.strip()
-        except httpx.HTTPError as error:
-            raise RuntimeError("The configured OpenAI provider could not complete the advisor response.") from error
-        
         raise RuntimeError("The configured OpenAI provider returned no text response.")
 
 

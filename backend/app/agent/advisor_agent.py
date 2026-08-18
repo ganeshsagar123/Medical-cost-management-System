@@ -75,10 +75,10 @@ class MedicalEconomicsSupervisorAgent:
             )
             response.status = "completed"
             response.message = None
-        except RuntimeError:
+        except RuntimeError as err:
             response.status = "provider_error"
             response.answer = _deterministic_answer(evidence)
-            response.message = "The configured LLM provider could not produce a response; this deterministic evidence response is shown instead."
+            response.message = f"LLM Provider Error: {err}"
         return response
 
     def _unsupported(self, dataset_id: int, question: str, message: str) -> AdvisorResponse:
